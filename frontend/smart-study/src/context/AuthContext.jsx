@@ -1,0 +1,98 @@
+import React, { createContext, useContext, useState, useEffect } from "react";
+
+const AuthContext = createContext();
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const userStr = localStorage.getItem("user");
+
+      console.log(" Auth Check - Token:", token ? "exists" : "missing");
+      console.log(" Auth Check - User:", userStr ? "exists" : "missing");
+
+      // Check if both token and user data exist and are valid
+      if (token && userStr && token !== "undefined" && userStr !== "undefined") {
+        try {
+          const userData = JSON.parse(userStr);
+          if (userData && userData.email) {
+            console.log(" Auth Check - Valid user data found:", userData.email);
+            setUser(userData);
+            setIsAuthenticated(true);
+          } else {
+            console.log(" Auth Check - Invalid user data, logging out");
+            // Invalid user data, clear it
+            logout();
+          }
+        } catch (parseError) {
+          console.log(" Auth Check - JSON parse error, logging out");
+          // Invalid JSON, clear it
+          logout();
+        }
+      } else {
+        console.log(" Auth Check - No valid token or user data");
+        // No valid token or user data
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    } catch (error) {
+      console.error(" Auth check failed:", error);
+      logout();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = (userData, token) => {
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(userData));
+
+    setUser(userData);
+    setIsAuthenticated(true);
+  };
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    
+    setUser(null);
+    setIsAuthenticated(false);
+    
+    // Force redirect to login page
+    window.location.href = "/login";
+  };
+
+  const updateUser = (updatedUserData) => {
+    const newUserData = { ...user, ...updatedUserData };
+    localStorage.setItem("user", JSON.stringify(newUserData));
+    setUser(newUserData);
+  };
+
+  const value = {
+    user,
+    loading,
+    isAuthenticated,
+    login,
+    logout,
+    updateUser,
+    checkAuthStatus,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
