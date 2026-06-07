@@ -1,19 +1,76 @@
 import express from "express";
 
-// 🔥 FIX: import whole controller (no named import issues)
-import * as aiController from "../controllers/aiController.js";
+import protect from "../middleware/auth.js";
 
-// import protect from "../middleware/auth.js"; // optional
+import {
+  chat,
+  generateSummary,
+  generateFlashcards,
+  generateQuiz,
+  explainConcept,
+  getChatHistory,
+} from "../controllers/aiController.js";
 
 const router = express.Router();
 
-// router.use(protect); // optional
+// ======================================================
+// PROTECTED ROUTES
+// ======================================================
 
-router.post("/generate-flashcards", aiController.generateFlashcards);
-router.post("/generate-quiz", aiController.generateQuiz);
-router.post("/generate-summary", aiController.generateSummary);
-router.post("/chat", aiController.chat);
-router.post("/explain-concept", aiController.explainConcept);
-router.get("/chat-history/:documentId", aiController.getChatHistory);
+router.use(protect);
+
+// ======================================================
+// CHAT
+// ======================================================
+
+router.post(
+  "/chat",
+  chat
+);
+
+// ======================================================
+// SUMMARY
+// ======================================================
+
+router.post(
+  "/summary",
+  generateSummary
+);
+
+// ======================================================
+// FLASHCARDS
+// ======================================================
+
+router.post(
+  "/flashcards",
+  generateFlashcards
+);
+
+// ======================================================
+// QUIZ
+// ======================================================
+
+router.post(
+  "/quiz",
+  generateQuiz
+);
+
+// ======================================================
+// EXPLAIN
+// ======================================================
+
+router.post(
+  "/explain-concept",
+  explainConcept
+);
+
+// ======================================================
+// CHAT HISTORY
+// ======================================================
+
+router.get(
+  "/chat-history/:documentId",
+  getChatHistory
+);
 
 export default router;

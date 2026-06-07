@@ -1,40 +1,89 @@
 import { useState } from "react";
+
 import Header from "./Header";
+
 import Sidebar from "./Sidebar";
 
-const AppLayout = ({ children }) => {
+const AppLayout = ({
+  children,
+}) => {
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [
+    isSidebarOpen,
+    setIsSidebarOpen,
+  ] = useState(false);
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+  const toggleSidebar =
+    () => {
+
+      setIsSidebarOpen(
+        !isSidebarOpen
+      );
+    };
 
   return (
 
-    <div className="min-h-screen bg-slate-50 flex">
+    <div
+      className="
+      h-screen
+      overflow-hidden
+      bg-slate-50
+      flex
+      "
+    >
 
-      {/* Sidebar */}
-      <Sidebar
-        isSidebarOpen={isSidebarOpen}
-        toggleSidebar={toggleSidebar}
-      />
+      {/* SIDEBAR */}
 
-      {/* Right Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="shrink-0">
 
-        <Header toggleSidebar={toggleSidebar} />
+        <Sidebar
+          isSidebarOpen={
+            isSidebarOpen
+          }
+          toggleSidebar={
+            toggleSidebar
+          }
+        />
 
-        <main className="flex-1 p-6 overflow-y-auto">
+      </div>
+
+      {/* MAIN CONTENT */}
+
+      <div
+        className="
+        flex-1
+        flex
+        flex-col
+        overflow-hidden
+        "
+      >
+
+        {/* HEADER */}
+
+        <Header
+          toggleSidebar={
+            toggleSidebar
+          }
+        />
+
+        {/* PAGE CONTENT */}
+
+        <main
+          className="
+          flex-1
+          overflow-y-auto
+          p-6
+          "
+        >
+
           {children}
+
         </main>
 
       </div>
 
     </div>
-
   );
-
 };
 
 export default AppLayout;

@@ -1,235 +1,478 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Activity from "../models/Activity.js";
 
+// ======================================================
+// GENERATE JWT TOKEN
+// ======================================================
 
-// Generate JWT token
 const generateToken = (id) => {
+
   return jwt.sign(
+
     { id },
+
     process.env.JWT_SECRET,
+
     {
-      expiresIn: process.env.JWT_EXPIRE || "7d",
+      expiresIn:
+        process.env.JWT_EXPIRE || "7d",
     }
   );
 };
 
+// ======================================================
+// REGISTER USER
+// ======================================================
 
-// @desc    Register new user
-// @route   POST /api/auth/register
-// @access  Public
-export const register = async (req, res, next) => {
-  try {
+export const register =
+  async (req, res, next) => {
 
-    const { username, email, password } = req.body;
+    try {
 
-    // Check if user exists
-    const userExists = await User.findOne({ email });
+      const {
+        username,
+        email,
+        password,
+      } = req.body;
 
-    if (userExists) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          userExists: {
-            email: email
-              ? "Email already registered"
-              : "Username already taken"
-          }
+      // CHECK IF USER EXISTS
+
+      const userExists =
+        await User.findOne({
+          email,
+        });
+
+      if (userExists) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          error: {
+            userExists: {
+              email:
+                "Email already registered",
+            },
+          },
+
+          statusCode: 400,
+        });
+      }
+
+      // CREATE USER
+
+      const user =
+        await User.create({
+
+          username,
+
+          email,
+
+          password,
+        });
+
+      // GENERATE TOKEN
+
+      const token =
+        generateToken(
+          user._id
+        );
+
+      res.status(201).json({
+
+        success: true,
+
+        data: {
+
+          user: {
+
+            id: user._id,
+
+            username:
+              user.username,
+
+            email:
+              user.email,
+
+            profileImage:
+              user.profileImage,
+
+            createdAt:
+              user.createdAt,
+          },
+
+          token,
         },
-        statusCode: 400
+
+        message:
+          "User registered successfully",
       });
+
+    } catch (error) {
+
+      console.log(error);
+
+      next(error);
     }
+  };
 
-    // Create user
-    const user = await User.create({
-      username,
-      email,
-      password,
-    });
+// ======================================================
+// LOGIN USER
+// ======================================================
 
-    // Generate token
-    const token = generateToken(user._id);
+export const login =
+  async (req, res, next) => {
 
-    res.status(201).json({
-      success: true,
-      data: {
-        user: {
+    try {
+
+      const {
+        email,
+        password,
+      } = req.body;
+
+      // VALIDATE INPUT
+
+      if (
+        !email ||
+        !password
+      ) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          error:
+            "Please provide email and password",
+
+          statusCode: 400,
+        });
+      }
+
+      // FIND USER
+
+      const user =
+        await User.findOne({
+          email,
+        }).select("+password");
+
+      if (!user) {
+
+        return res.status(401).json({
+
+          success: false,
+
+          error:
+            "Invalid credentials",
+
+          statusCode: 401,
+        });
+      }
+
+      // CHECK PASSWORD
+
+      const isMatch =
+        await user.matchPassword(
+          password
+        );
+
+      if (!isMatch) {
+
+        return res.status(401).json({
+
+          success: false,
+
+          error:
+            "Invalid credentials",
+
+          statusCode: 401,
+        });
+      }
+
+      // GENERATE TOKEN
+
+      const token =
+        generateToken(
+          user._id
+        );
+
+      res.status(200).json({
+
+        success: true,
+
+        data: {
+
+          user: {
+
+            id: user._id,
+
+            username:
+              user.username,
+
+            email:
+              user.email,
+
+            profileImage:
+              user.profileImage,
+          },
+
+          token,
+        },
+
+        message:
+          "Login successful",
+      });
+
+    } catch (error) {
+
+      console.log(error);
+
+      next(error);
+    }
+  };
+
+// ======================================================
+// GET PROFILE
+// ======================================================
+
+export const getProfile =
+  async (req, res, next) => {
+
+    try {
+
+      const user =
+        await User.findById(
+          req.user._id
+        );
+
+      res.status(200).json({
+
+        success: true,
+
+        data: {
+
           id: user._id,
-          username: user.username,
-          email: user.email,
-          profileImage: user.profileImage,
-          createdAt: user.createdAt
+
+          username:
+            user.username,
+
+          email:
+            user.email,
+
+          profileImage:
+            user.profileImage,
+
+          createdAt:
+            user.createdAt,
+
+          updatedAt:
+            user.updatedAt,
         },
-        token,
-      },
-      message: "User registered successfully"
-    });
-
-  } catch (error) {
-    next(error);
-  }
-};
-
-
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
-export const login = async (req, res, next) => {
-  try {
-
-    const { email, password } = req.body;
-
-    // Validate input
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        error: "Please provide email and password",
-        statusCode: 400
       });
+
+    } catch (error) {
+
+      console.log(error);
+
+      next(error);
     }
+  };
 
-    // Check for user (include password for comparison)
-    const user = await User.findOne({ email }).select("+password");
+// ======================================================
+// UPDATE PROFILE
+// ======================================================
 
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        error: "Invalid credentials",
-        statusCode: 401
-      });
-    }
+export const updateProfile =
+  async (req, res, next) => {
 
-    // Check password
-    const isMatch = await user.matchPassword(password);
+    try {
 
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        error: "Invalid credentials",
-        statusCode: 401
-      });
-    }
+      const {
+        username,
+        email,
+        profileImage,
+      } = req.body;
 
-    // Generate token
-    const token = generateToken(user._id);
+      const user =
+        await User.findById(
+          req.user._id
+        );
 
-    res.status(200).json({
-      success: true,
-      data: {
-        user: {
+      if (username)
+        user.username =
+          username;
+
+      if (email)
+        user.email =
+          email;
+
+      if (profileImage)
+        user.profileImage =
+          profileImage;
+
+      await user.save();
+
+      res.status(200).json({
+
+        success: true,
+
+        data: {
+
           id: user._id,
-          username: user.username,
-          email: user.email,
-          profileImage: user.profileImage
+
+          username:
+            user.username,
+
+          email:
+            user.email,
+
+          profileImage:
+            user.profileImage,
         },
-        token
-      },
-      message: "Login successful"
-    });
 
-  } catch (error) {
-    next(error);
-  }
-};
+        message:
+          "Profile updated successfully",
+      });
 
+    } catch (error) {
 
-// @desc    Get user profile
-// @route   GET /api/auth/profile
-// @access  Private
-export const getProfile = async (req, res, next) => {
-  try {
+      console.log(error);
 
-    const user = await User.findById(req.user._id);
+      next(error);
+    }
+  };
 
-    res.status(200).json({
-      success: true,
-      data: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        profileImage: user.profileImage,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
-    });
+// ======================================================
+// CHANGE PASSWORD
+// ======================================================
 
-  } catch (error) {
-    next(error);
-  }
-};
+export const changePassword =
+  async (req, res, next) => {
 
+    try {
 
-// @desc    Update user profile
-// @route   PUT /api/auth/profile
-// @access  Private
-export const updateProfile = async (req, res, next) => {
-  try {
+      console.log(
+        "REQ USER:",
+        req.user
+      );
 
-    const { username, email, profileImage } = req.body;
+      console.log(
+        "REQ BODY:",
+        req.body
+      );
 
-    const user = await User.findById(req.user._id);
+      const {
+        currentPassword,
+        newPassword,
+      } = req.body;
 
-    if (username) user.username = username;
-    if (email) user.email = email;
-    if (profileImage) user.profileImage = profileImage;
+      // VALIDATION
 
-    await user.save();
+      if (
+        !currentPassword ||
+        !newPassword
+      ) {
 
-    res.status(200).json({
-      success: true,
-      data: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        profileImage: user.profileImage,
-      },
-      message: "Profile updated successfully",
-    });
+        return res.status(400).json({
 
-  } catch (error) {
-    next(error);
-  }
-};
+          success: false,
 
+          error:
+            "Please provide current and new password",
 
-// @desc    Change password
-// @route   POST /api/auth/change-password
-// @access  Private
-export const changePassword = async (req, res, next) => {
-  try {
+          statusCode: 400,
+        });
+      }
 
-    const { currentPassword, newPassword } = req.body;
+      // FIND USER
 
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({
+      const user =
+        await User.findById(
+          req.user._id
+        ).select("+password");
+
+      if (!user) {
+
+        return res.status(404).json({
+
+          success: false,
+
+          error:
+            "User not found",
+
+          statusCode: 404,
+        });
+      }
+
+      // CHECK PASSWORD
+
+      const isMatch =
+        await user.matchPassword(
+          currentPassword
+        );
+
+      console.log(
+        "PASSWORD MATCH:",
+        isMatch
+      );
+
+      if (!isMatch) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          error:
+            "Current password is incorrect",
+
+          statusCode: 400,
+        });
+      }
+
+      // UPDATE PASSWORD
+
+      user.password =
+        newPassword;
+
+      await user.save();
+
+      // CREATE ACTIVITY
+
+      await Activity.create({
+
+        userId:
+          user._id,
+
+        type:
+          "password",
+
+        message:
+          "Password changed successfully",
+      });
+
+      res.status(200).json({
+
+        success: true,
+
+        message:
+          "Password changed successfully",
+      });
+
+    } catch (error) {
+
+      console.log(
+        "CHANGE PASSWORD ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
         success: false,
-        error: "Please provide current and new password",
-        statusCode: 400,
+
+        error:
+          "Server error",
+
+        statusCode: 500,
       });
     }
-
-    const user = await User.findById(req.user._id).select("+password");
-
-    // Check current password
-    const isMatch = await user.matchPassword(currentPassword);
-
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        error: "Current password is incorrect",
-        statusCode: 401,
-      });
-    }
-
-    // Update password
-    user.password = newPassword;
-    await user.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Password changed successfully",
-    });
-
-  } catch (error) {
-    next(error);
-  }
-};
+  };

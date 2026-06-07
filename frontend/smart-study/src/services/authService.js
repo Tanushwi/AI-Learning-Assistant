@@ -1,6 +1,29 @@
 import axiosInstance from "../utils/axiosInstance";
 import { API_PATHS } from "../utils/apiPaths";
 
+const getActivities =
+  async () => {
+
+    try {
+
+      const response =
+        await axiosInstance.get(
+          "/api/auth/activities"
+        );
+
+      return response.data;
+
+    } catch (error) {
+
+      throw (
+        error.response?.data || {
+          message:
+            "Failed to fetch activities",
+        }
+      );
+    }
+  };
+
 const login = async (email, password) => {
   try {
     const response = await axiosInstance.post(API_PATHS.AUTH.LOGIN, {
@@ -89,6 +112,7 @@ const authService = {
   getProfile,
   updateProfile,
   changePassword,
+  getActivities,
 };
 
 export default authService;

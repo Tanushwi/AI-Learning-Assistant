@@ -3,6 +3,7 @@ import path from "path";
 import { extractTextFromPDF } from "../utils/pdfParser.js";
 import { chunkText } from "../utils/textChunker.js";
 import Document from "../models/Document.js";
+import Activity from "../models/Activity.js";
 
 const processPDF = async (documentId, filePath) => {
   try {
@@ -113,6 +114,14 @@ const uploadDocument = async (req, res, next) => {
       status: "processing"
     });
 
+    await Activity.create({
+      userId: req.user?._id || "demo_user",
+      documentId: document._id,
+      type: "upload",
+      message: `Uploaded document: ${title}`
+    });
+
+
     // Process in background
     processPDF(document._id, req.file.path).catch((err) => {
       console.error("PDF processing error:", err);
@@ -169,6 +178,11 @@ const getDocument = async (req, res, next) => {
         statusCode: 404
       });
     }
+    await Activity.create({
+      userId: req.user?._id,
+      type: "document",
+      message: `Accessed document "${document.title}"`,
+    });
 
     res.status(200).json({
       success: true,

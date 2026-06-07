@@ -1,5 +1,5 @@
 import Quiz from "../models/Quiz.js";
-
+import Activity from "../models/Activity.js";
 
 // @desc    Get all quizzes for a document
 // @route   GET /api/quizzes/:documentId
@@ -122,6 +122,12 @@ export const submitQuiz = async (req, res, next) => {
     quiz.userAnswers = userAnswers;
     quiz.score = score;
     quiz.completedAt = new Date();
+
+    await Activity.create({
+      userId:req.user._id,
+      type: "quiz",
+      message:`Attempted quiz and scored ${score}%`,
+    });
 
     await quiz.save();
 
